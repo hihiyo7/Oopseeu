@@ -1,5 +1,30 @@
+# WRIST = 0  hand body
+# THUMB_CMC = 1 tump(1-4)
+# THUMB_MCP = 2
+# THUMB_IP = 3
+# THUMB_TIP = 4
+# INDEX_FINGER_MCP = 5 index(5-8)
+# INDEX_FINGER_PIP = 6
+# INDEX_FINGER_DIP = 7
+# INDEX_FINGER_TIP = 8
+# MIDDLE_FINGER_MCP = 9 middle(9-12)
+# MIDDLE_FINGER_PIP = 10
+# MIDDLE_FINGER_DIP = 11
+# MIDDLE_FINGER_TIP = 12
+# RING_FINGER_MCP = 13 ring(13-16)
+# RING_FINGER_PIP = 14
+# RING_FINGER_DIP = 15
+# RING_FINGER_TIP = 16
+# PINKY_MCP = 17 pinky(17-20)
+# PINKY_PIP = 18
+# PINKY_DIP = 19
+# PINKY_TIP = 20
+
 import cv2
 import mediapipe as mp
+from PIL import ImageFont, ImageDraw, Image
+import numpy as np
+
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_hands = mp.solutions.hands
@@ -48,25 +73,29 @@ with mp_hands.Hands(
 # For webcam input:
 cap = cv2.VideoCapture(0)
 with mp_hands.Hands(
-    model_complexity=0,
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5) as hands:
+
   while cap.isOpened():
     success, image = cap.read()
     if not success:
       print("Ignoring empty camera frame.")
-      # If loading a video, use 'break' instead of 'continue'.
       continue
 
-    # To improve performance, optionally mark the image as not writeable to
-    # pass by reference.
-    image.flags.writeable = False
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    results = hands.process(image)
+      # Flip the image horizontally for a later selfie-view display, and convert
 
-    # Draw the hand annotations on the image.
-    image.flags.writeable = True
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+      image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
+
+      # To improve performance, optionally mark the image as not writeable to
+      # pass by reference.
+      image.flags.writeable = False
+      results = hands.process(image)
+
+      # Draw the hand annotations on the image.
+      image.flags.writeable = True
+      image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+      image_height, image_width, _ = image.shape
+
     if results.multi_hand_landmarks:
       for hand_landmarks in results.multi_hand_landmarks:
         mp_drawing.draw_landmarks(
