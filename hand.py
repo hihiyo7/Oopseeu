@@ -82,22 +82,23 @@ with mp_hands.Hands(
       print("Ignoring empty camera frame.")
       continue
 
-      # Flip the image horizontally for a later selfie-view display, and convert
+    # Flip the image horizontally for a later selfie-view display, and convert
 
-      image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
+    image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
 
-      # To improve performance, optionally mark the image as not writeable to
-      # pass by reference.
-      image.flags.writeable = False
-      results = hands.process(image)
+    # To improve performance, optionally mark the image as not writeable to
+    # pass by reference.
+    image.flags.writeable = False
+    results = hands.process(image)
 
-      # Draw the hand annotations on the image.
-      image.flags.writeable = True
-      image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-      image_height, image_width, _ = image.shape
+    # Draw the hand annotations on the image.
+    image.flags.writeable = True
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    image_height, image_width, _ = image.shape
 
     if results.multi_hand_landmarks:
       for hand_landmarks in results.multi_hand_landmarks:
+        
         # When the bone of each joint is above the bone below it, the state is changed to 1 to change the state of the finger being extended.
         thumb_finger_state = 0
         if hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_CMC].y * image_height > hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_MCP].y * image_height:
@@ -128,6 +129,45 @@ with mp_hands.Hands(
           if hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_PIP].y * image_height > hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_DIP].y * image_height:
             if hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_DIP].y * image_height > hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP].y * image_height:
               pinky_finger_state = 1
+             # Set 5, 4, 3, 2, 1 using 1 and 0 based on the if statement above.
+
+        font = ImageFont.truetype("fonts/gulim.ttc", 80)
+        image = Image.fromarray(image)
+        draw = ImageDraw.Draw(image)
+
+       
+        text = ""
+        if thumb_finger_state == 1 and index_finger_state == 1 and middle_finger_state == 1 and ring_finger_state == 1 and pinky_finger_state == 1:
+          text = "5"
+        elif index_finger_state == 1 and middle_finger_state == 1 and ring_finger_state == 1 and pinky_finger_state == 1:
+          text = "4"
+        elif index_finger_state == 0 and middle_finger_state == 1 and ring_finger_state == 1 and pinky_finger_state == 1:
+          text = "3"
+        elif index_finger_state == 0 and middle_finger_state == 0 and ring_finger_state == 1 and pinky_finger_state == 1:
+          text = "2"
+        elif index_finger_state == 0 and middle_finger_state == 0 and ring_finger_state == 0 and pinky_finger_state == 1:
+          text = "1"
+        elif index_finger_state == 0 and middle_finger_state == 0 and ring_finger_state == 0 and pinky_finger_state == 0:
+          text = "0"
+          
+
+        w, h = font.getsize(text)
+
+        x = 50
+        y = 50
+
+        draw.text((x, y),  text, font=font, fill=(255, 255, 255))
+        image = np.array(image)
+
+
+        #Complete the frame of your finger
+
+        mp_drawing.draw_landmarks(
+            image,
+            hand_landmarks,
+            mp_hands.HAND_CONNECTIONS,
+            mp_drawing_styles.get_default_hand_landmarks_style(),
+            mp_drawing_styles.get_default_hand_connections_style())
 
     # Flip the image horizontally for a selfie-view display.
     cv2.imshow('MediaPipe Hands', cv2.flip(image, 1))
