@@ -1,9 +1,17 @@
 # 🤭Oopseeu!🤭
 
-Hi~! We are OopSeeu!
+#### Hi~! We are OopSeeu!
 
-AI in Gaghon University and Open Source term project
+#### AI in Gaghon University and Open Source term project
 
+*서가은 202235056*
+
+*고효경 202235004*
+
+*김다혜 202235015*
+
+*박서현 202235043*
+#
 -----------------------------------------------
 ### Hand gestures and facial mosaic recognition
 - Introducing the open cv that I made it
@@ -31,7 +39,7 @@ We put a function that recognizes numbers and recognizes faces to blur the hand 
 >>Numpy: Python's package for easy processing and efficient use of multidimensional arrays.
 
 ##
-- 실행방법
+- python hand.py
 
   * Press 'q' to exit the execution.
   
@@ -40,4 +48,4 @@ We put a function that recognizes numbers and recognizes faces to blur the hand 
 
 -------------------------------------------------------------------------------------
 *reference data : https://google.github.io/mediapipe/solutions/hands.html, 
-https://jinho-study.tistory.com/231*
+https://jinho-study.tistory.com/231, haarcascade_frontalface_default.xml*
