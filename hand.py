@@ -25,71 +25,51 @@ import mediapipe as mp
 from PIL import ImageFont, ImageDraw, Image
 import numpy as np
 
+xml = 'haarcascade_frontalface_default.xml'
+face_cascade = cv2.CascadeClassifier(xml)
+
 mp_drawing = mp.solutions.drawing_utils
-mp_drawing_styles = mp.solutions.drawing_styles
 mp_hands = mp.solutions.hands
-
-# For static images:
-IMAGE_FILES = []
-with mp_hands.Hands(
-    static_image_mode=True,
-    max_num_hands=2,
-    min_detection_confidence=0.5) as hands:
-  for idx, file in enumerate(IMAGE_FILES):
-    # Read an image, flip it around y-axis for correct handedness output (see
-    # above).
-    image = cv2.flip(cv2.imread(file), 1)
-    # Convert the BGR image to RGB before processing.
-    results = hands.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-
-    # Print handedness and draw hand landmarks on the image.
-    print('Handedness:', results.multi_handedness)
-    if not results.multi_hand_landmarks:
-      continue
-    image_height, image_width, _ = image.shape
-    annotated_image = image.copy()
-    for hand_landmarks in results.multi_hand_landmarks:
-      print('hand_landmarks:', hand_landmarks)
-      print(
-          f'Index finger tip coordinates: (',
-          f'{hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x * image_width}, '
-          f'{hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y * image_height})'
-      )
-      mp_drawing.draw_landmarks(
-          annotated_image,
-          hand_landmarks,
-          mp_hands.HAND_CONNECTIONS,
-          mp_drawing_styles.get_default_hand_landmarks_style(),
-          mp_drawing_styles.get_default_hand_connections_style())
-    cv2.imwrite(
-        '/tmp/annotated_image' + str(idx) + '.png', cv2.flip(annotated_image, 1))
-    # Draw hand world landmarks.
-    if not results.multi_hand_world_landmarks:
-      continue
-    for hand_world_landmarks in results.multi_hand_world_landmarks:
-      mp_drawing.plot_landmarks(
-        hand_world_landmarks, mp_hands.HAND_CONNECTIONS, azimuth=5)
+mp_drawing_styles = mp.solutions.drawing_styles
 
 # For webcam input:
 cap = cv2.VideoCapture(0)
+cap.set(3, 640) # webcam width
+cap.set(4, 480) # webcam height
+
 with mp_hands.Hands(
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5) as hands:
 
+ 
   while cap.isOpened():
     success, image = cap.read()
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    faces = face_cascade.detectMultiScale(gray,1.05, 5)
+    
+    if len(faces):
+      for (x,y,w,h) in faces:
+        face_img = image[y:y+h, x:x+w] # crop the face image
+        face_img = cv2.resize(face_img, dsize=(0, 0), fx=0.04, fy=0.04)
+        face_img = cv2.resize(face_img, (w, h), interpolation=cv2.INTER_AREA)
+        image[y:y+h, x:x+w] = face_img
+        
     if not success:
       print("Ignoring empty camera frame.")
+
+      # If loading a video, use 'break' instead of 'continue'.
       continue
 
     # Flip the image horizontally for a later selfie-view display, and convert
-
+    # the BGR image to RGB.
     image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
 
     # To improve performance, optionally mark the image as not writeable to
     # pass by reference.
     image.flags.writeable = False
     results = hands.process(image)
+
 
     # Draw the hand annotations on the image.
     image.flags.writeable = True
@@ -98,8 +78,9 @@ with mp_hands.Hands(
 
     if results.multi_hand_landmarks:
       for hand_landmarks in results.multi_hand_landmarks:
-        
-        # When the bone of each joint is above the bone below it, the state is changed to 1 to change the state of the finger being extended.
+
+
+        # # When the bone of each joint is above the bone below it, the state is changed to 1 to change the state of the finger being extended.
         thumb_finger_state = 0
         if hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_CMC].y * image_height > hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_MCP].y * image_height:
           if hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_MCP].y * image_height > hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_IP].y * image_height:
@@ -129,13 +110,14 @@ with mp_hands.Hands(
           if hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_PIP].y * image_height > hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_DIP].y * image_height:
             if hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_DIP].y * image_height > hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP].y * image_height:
               pinky_finger_state = 1
-             # Set 5, 4, 3, 2, 1 using 1 and 0 based on the if statement above.
 
+
+ 
         font = ImageFont.truetype("fonts/gulim.ttc", 80)
         image = Image.fromarray(image)
         draw = ImageDraw.Draw(image)
 
-       
+        # Set 5, 4, 3, 2, 1 using 1 and 0 based on the if statement above.
         text = ""
         if thumb_finger_state == 1 and index_finger_state == 1 and middle_finger_state == 1 and ring_finger_state == 1 and pinky_finger_state == 1:
           text = "5"
@@ -150,7 +132,7 @@ with mp_hands.Hands(
         elif index_finger_state == 0 and middle_finger_state == 0 and ring_finger_state == 0 and pinky_finger_state == 0:
           text = "0"
           
-
+        # Complete the frame of your finger
         w, h = font.getsize(text)
 
         x = 50
@@ -160,8 +142,7 @@ with mp_hands.Hands(
         image = np.array(image)
 
 
-        #Complete the frame of your finger
-
+        # Flip the image horizontally for a selfie-view display.
         mp_drawing.draw_landmarks(
             image,
             hand_landmarks,
@@ -169,10 +150,10 @@ with mp_hands.Hands(
             mp_drawing_styles.get_default_hand_landmarks_style(),
             mp_drawing_styles.get_default_hand_connections_style())
 
-    # Flip the image horizontally for a selfie-view display.
-    cv2.imshow('MediaPipe Hands', cv2.flip(image, 1))
+    cv2.imshow('MediaPipe Hands', image)
+
+
     if cv2.waitKey(1) & 0xFF == ord('q'):
-
       break
-cap.release()
 
+cap.release()
